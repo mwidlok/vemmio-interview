@@ -10,13 +10,13 @@ public class App {
         TunnelFactory factory = new TunnelFactoryImpl();
         TunnelPool pool = new TunnelPoolImpl(factory, Executors.newScheduledThreadPool(4));
 
-        createTunnels(pool);
+        openTunnels(pool);
         waitUntilAllTunnelsAreOpened(pool);
 
         pool.shutdown();
     }
 
-    private static void createTunnels(TunnelPool pool) throws TunnelPoolShutdownException {
+    private static void openTunnels(TunnelPool pool) throws TunnelPoolShutdownException {
         Random random = new Random();
         for (int i = 0; i < 10; i++) {
             pool.get(new TunnelId("foobar", random.nextInt(10)));
