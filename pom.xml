@@ -4,11 +4,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.vemmio</groupId>
-    <artifactId>vemmio-interview</artifactId>
+    <artifactId>vemmio-tunnel-pool</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>vemmio-interview</name>
+    <name>vemmio-tunnel-pool</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
