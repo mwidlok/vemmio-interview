@@ -1,7 +1,9 @@
 package com.vemmio.interview;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -13,6 +15,9 @@ public class TunnelPoolTest {
     private final Tunnel tunnel1 = mock(Tunnel.class);
     private final Tunnel tunnel2 = mock(Tunnel.class);
     private final TunnelPool pool = new TunnelPoolImpl(factory, Executors.newSingleThreadScheduledExecutor());
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Before
     public void beforeEach() throws TunnelNotStartedException {
@@ -86,6 +91,8 @@ public class TunnelPoolTest {
 
         pool.get(id1).get();
         pool.shutdown();
+
+        exception.expect(TunnelPoolShutdownException.class);
         pool.get(id2).get();
     }
 }

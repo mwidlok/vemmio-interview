@@ -1,11 +1,17 @@
 package com.vemmio.interview;
 
+import org.slf4j.Logger;
+
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
 public class App {
+    private static final Logger LOGGER = getLogger(App.class);
+
     public static void main(String[] args) throws TunnelPoolShutdownException, InterruptedException {
         TunnelFactory factory = new TunnelFactoryImpl();
         TunnelPool pool = new TunnelPoolImpl(factory, Executors.newScheduledThreadPool(4));
@@ -14,6 +20,7 @@ public class App {
         waitUntilAllTunnelsAreOpened(pool);
 
         pool.shutdown();
+        LOGGER.debug("Application is closed");
     }
 
     private static void openTunnels(TunnelPool pool) throws TunnelPoolShutdownException {
@@ -25,6 +32,7 @@ public class App {
 
     private static void waitUntilAllTunnelsAreOpened(TunnelPool pool) throws InterruptedException {
         while (!pool.getAll().stream().allMatch(Future::isDone)) {
+            LOGGER.debug("waiting...");
             TimeUnit.SECONDS.sleep(1);
         }
     }
