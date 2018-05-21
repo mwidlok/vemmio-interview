@@ -2,9 +2,7 @@ package com.vemmio.interview;
 
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,8 +15,7 @@ public class TunnelPoolImpl implements TunnelPool {
     private static final Logger LOGGER = getLogger(TunnelPoolImpl.class);
     private final TunnelFactory factory;
     private final ScheduledExecutorService executorService;
-    private final Map<TunnelId, Tunnel> tunnels = new ConcurrentHashMap<>();
-    private final Collection<Future<Tunnel>> tasks = Collections.synchronizedList(new ArrayList<>());
+    private final Map<TunnelId, Future<Tunnel>> tunnels = new ConcurrentHashMap<>();
 
     public TunnelPoolImpl(TunnelFactory factory, ScheduledExecutorService executorService) {
         this.factory = factory;
@@ -32,19 +29,40 @@ public class TunnelPoolImpl implements TunnelPool {
             throw new TunnelPoolShutdownException();
         }
 
-        Callable<Tunnel> createTunnelTask = createTunnel(id);
-        return getTunnelTask(createTunnelTask);
+        Future<Tunnel> existingTunnelTask = tunnels.get(id);
+        if (existingTunnelTask == null) {
+            return getTunnelTask(id);
+        }
+
+        if (!existingTunnelTask.isDone()) {
+            return existingTunnelTask;
+        }
+
+        try {
+            existingTunnelTask.get();
+        } catch (Exception e) {
+            LOGGER.debug("Error when getting Tunnel with id {}", id);
+            remove(id);
+            return getTunnelTask(id);
+        }
+
+        return existingTunnelTask;
     }
 
     @Override
     public Collection<Future<Tunnel>> getAll() {
-        return tasks;
+        return tunnels.values();
     }
 
     @Override
     public void close(TunnelId id) {
-        Tunnel tunnel = tunnels.get(id);
-        tunnel.close();
+        try {
+            Tunnel tunnel = tunnels.get(id).get();
+            tunnel.close();
+        } catch (Exception e) {
+            LOGGER.debug("Error during closing tunnel with id {}", id);
+            remove(id);
+        }
     }
 
     @Override
@@ -55,26 +73,19 @@ public class TunnelPoolImpl implements TunnelPool {
         LOGGER.debug("Shutdown operation is completed");
     }
 
-    private Future<Tunnel> getTunnelTask(Callable<Tunnel> createTunnelTask) {
-        Future<Tunnel> task = executorService.submit(createTunnelTask);
-        tasks.add(task);
-        return task;
+    private Future<Tunnel> getTunnelTask(TunnelId id) {
+        Future<Tunnel> tunnelTask = executorService.submit(createTunnelTask(id));
+        tunnels.put(id, tunnelTask);
+        return tunnelTask;
     }
 
-    private Callable<Tunnel> createTunnel(TunnelId id) {
-        return () -> {
-            if (tunnels.containsKey(id)) {
-                return tunnels.get(id);
-            }
+    private Callable<Tunnel> createTunnelTask(TunnelId id) {
+        return () -> factory.create(id);
+    }
 
-            Tunnel newTunnel = factory.create(id);
-
-            // check if in the meantime tunnel was not created
-            if (!tunnels.containsKey(id)) {
-                tunnels.put(id, newTunnel);
-            }
-
-            return tunnels.get(id);
-        };
+    private void remove(TunnelId id) {
+        if (tunnels.containsKey(id)) {
+            tunnels.remove(id);
+        }
     }
 }
