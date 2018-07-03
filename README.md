@@ -34,5 +34,14 @@ mvn clean install
 <li>Maven 3
 </ul>
 
+# Rules of solution
+
+1. Make fork of this repo
+2. All tests should pass - you can write your own tests if needed
+3. No changes are allowed to the main program and existing tests code
+4. Technology used should remain the same.
+5. Everything else can be modified to fulfill tests
+
+
   
  
